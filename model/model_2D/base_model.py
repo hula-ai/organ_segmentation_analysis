@@ -160,7 +160,7 @@ class BaseModel(object):
             print('wrong data name')
 
         self.data_reader = DataLoader(self.conf)
-        self.numTest = 10
+        self.numTest = 20
         # self.numTest = self.data_reader.count_num_samples(mode='test')
         self.num_test_batch = int(self.numTest / self.conf.val_batch_size)
 
@@ -169,7 +169,7 @@ class BaseModel(object):
             self.normal_evaluate(dataset='test', train_step=step_num)
         else:
             self.MC_evaluate(dataset='test', train_step=step_num)
-        self.visualize(num_samples=20, train_step=step_num, mode='test')
+        # self.visualize(num_samples=20, train_step=step_num, mode='test')
 
     def save(self, step):
         print('----> Saving the model at step #{0}'.format(step))

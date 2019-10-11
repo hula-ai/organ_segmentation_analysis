@@ -55,8 +55,8 @@ def vis_segmentation(image, seg_map_gt, seg_map_pred, var_map_pred=None, cls_unc
     num_cls = len(label_names)
 
     if cls_uncert is not None:
-        plt.figure(figsize=(20, 8))
-        grid_spec = gridspec.GridSpec(2, num_cls)
+        plt.figure(figsize=(24, 8))
+        grid_spec = gridspec.GridSpec(2, num_cls+1)
     else:
         plt.figure(figsize=(20, 6))
         grid_spec = gridspec.GridSpec(1, 6, width_ratios=[6, 6, 6, 6, 6, 1])
@@ -89,7 +89,30 @@ def vis_segmentation(image, seg_map_gt, seg_map_pred, var_map_pred=None, cls_unc
     plt.imshow(seg_image, alpha=0.4)
     plt.axis('off')
     plt.title('prediction overlay')
+
+    ii += 1
+    ax = plt.subplot(grid_spec[ii])
+    correctness_map = seg_map_gt - seg_map_pred
+    correctness_map[correctness_map != 0] = 1
+    plt.imshow(correctness_map, cmap='Greys')
+    ax.get_xaxis().set_visible(False)
+    ax.get_yaxis().set_visible(False)
+    plt.title('Correctness overlay')
+
     if var_map_pred is not None:
+        T = 0.008
+        threshold_pred = np.copy(var_map_pred)
+        threshold_pred[threshold_pred > T] = 1
+        threshold_pred[threshold_pred <= T] = 0
+
+        ii += 1
+        ax = plt.subplot(grid_spec[ii])
+        plt.subplot(grid_spec[ii])
+        plt.imshow(threshold_pred, cmap='Greys')
+        ax.get_xaxis().set_visible(False)
+        ax.get_yaxis().set_visible(False)
+        plt.title('model uncertainty (Thresholded)')
+
         ii += 1
         ax = plt.subplot(grid_spec[ii])
         plt.subplot(grid_spec[ii])
@@ -98,15 +121,15 @@ def vis_segmentation(image, seg_map_gt, seg_map_pred, var_map_pred=None, cls_unc
         ax.get_yaxis().set_visible(False)
         plt.title('model uncertainty')
 
-    ii += 1
-    unique_labels = np.unique(np.concatenate((np.unique(seg_map_gt), np.unique(seg_map_pred)), 0)).astype(np.int32)
-    ax = plt.subplot(grid_spec[ii])
-    plt.imshow(FULL_COLOR_MAP[unique_labels].astype(np.uint8), interpolation='nearest')
-    ax.yaxis.tick_right()
-    plt.yticks(range(len(unique_labels)), label_names[unique_labels])
-    plt.xticks([], [])
-    ax.tick_params(width=0.0)
-    plt.grid('off')
+    # ii += 1
+    # unique_labels = np.unique(np.concatenate((np.unique(seg_map_gt), np.unique(seg_map_pred)), 0)).astype(np.int32)
+    # ax = plt.subplot(grid_spec[ii])
+    # plt.imshow(FULL_COLOR_MAP[unique_labels].astype(np.uint8), interpolation='nearest')
+    # ax.yaxis.tick_right()
+    # plt.yticks(range(len(unique_labels)), label_names[unique_labels])
+    # plt.xticks([], [])
+    # ax.tick_params(width=0.0)
+    # plt.grid('off')
 
     if cls_uncert is not None:
         for i, name in enumerate(label_names):
@@ -117,6 +140,17 @@ def vis_segmentation(image, seg_map_gt, seg_map_pred, var_map_pred=None, cls_unc
             plt.title(name)
             ax.get_xaxis().set_visible(False)
             ax.get_yaxis().set_visible(False)
+
+    ii += len(label_names) + 1
+    unique_labels = np.unique(np.concatenate((np.unique(seg_map_gt), np.unique(seg_map_pred)), 0)).astype(np.int32)
+    ax = plt.subplot(grid_spec[ii])
+    plt.imshow(FULL_COLOR_MAP[unique_labels].astype(np.uint8), interpolation='nearest')
+    ax.yaxis.tick_right()
+    plt.yticks(range(len(unique_labels)), label_names[unique_labels])
+    plt.xticks([], [])
+    ax.tick_params(width=0.0)
+    plt.grid('off')
+
 
     plt.savefig(image_name)
 

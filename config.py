@@ -4,7 +4,8 @@ flags = tf.app.flags
 flags.DEFINE_string('mode', 'test', 'train or test')
 flags.DEFINE_boolean('bayes', True, 'Whether to use Bayesian network or not')
 flags.DEFINE_integer('monte_carlo_simulations', 50, 'The number of monte carlo simulation runs')
-flags.DEFINE_integer('reload_step', 103000, 'Reload step to continue training')
+# flags.DEFINE_integer('reload_step', 103000, 'Reload step to continue training')
+flags.DEFINE_integer('reload_step', 89500, 'Reload step to continue training')
 
 # Training logs
 flags.DEFINE_integer('max_step', 300000, '# of step for training')
@@ -36,7 +37,8 @@ flags.DEFINE_integer('width', 512, 'Original image (and Network if random_crop i
 flags.DEFINE_integer('channel', 1, 'Original image channel size')                                       ######
 
 # Directories
-flags.DEFINE_string('run_name', 'dropout', 'Run name')         ############
+# flags.DEFINE_string('run_name', 'dropout', 'Run name')         ############
+flags.DEFINE_string('run_name', 'dropconnect', 'Run name')         ############
 flags.DEFINE_string('logdir', './Results/log_dir/', 'Logs directory')
 flags.DEFINE_string('modeldir', './Results/model_dir/', 'Model directory')
 flags.DEFINE_string('imagedir', './Results/image_dir/', 'Directory to save sample predictions')
