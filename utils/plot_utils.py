@@ -48,7 +48,27 @@ def label_to_color_image(label):
     return colormap[label]
 
 
-def vis_segmentation(image, seg_map_gt, seg_map_pred, var_map_pred=None, cls_uncert=None, label_names=None, image_name=None):
+def vis_data(image, seg_map_gt, label_names):
+    """Visualizes input image, segmentation map and overlay view."""
+    FULL_LABEL_MAP = np.arange(len(label_names)).reshape(len(label_names), 1)
+    FULL_COLOR_MAP = label_to_color_image(FULL_LABEL_MAP)
+    num_cls = len(label_names)
+
+    plt.figure(figsize=(20, 20))
+    # plot input image
+    plt.subplot(121)
+    plt.imshow(np.squeeze(image), cmap='gray')
+    plt.axis('off')
+    plt.title('input image')
+
+    # plot ground truth mask
+    plt.subplot(122)
+    seg_image = label_to_color_image(seg_map_gt.astype(np.int32)).astype(np.uint8)
+    plt.imshow(seg_image)
+    plt.axis('off')
+    plt.title('ground truth map')
+
+def vis_segmentation(image, seg_map_gt, seg_map_pred, var_map_pred=None, cls_uncert=None, label_names=None, image_name=None, Threshold=0.008):
     """Visualizes input image, segmentation map and overlay view."""
     FULL_LABEL_MAP = np.arange(len(label_names)).reshape(len(label_names), 1)
     FULL_COLOR_MAP = label_to_color_image(FULL_LABEL_MAP)
@@ -58,8 +78,10 @@ def vis_segmentation(image, seg_map_gt, seg_map_pred, var_map_pred=None, cls_unc
         plt.figure(figsize=(24, 8))
         grid_spec = gridspec.GridSpec(2, num_cls+1)
     else:
-        plt.figure(figsize=(20, 6))
-        grid_spec = gridspec.GridSpec(1, 6, width_ratios=[6, 6, 6, 6, 6, 1])
+        plt.figure(figsize=(20, 10))
+        # plt.figure(figsize=(20, 6))
+        grid_spec = gridspec.GridSpec(2, 4)
+        # grid_spec = gridspec.GridSpec(1, 6, width_ratios=[6, 6, 6, 6, 6, 1])
 
     # plot input image
     ii = 0
@@ -100,7 +122,7 @@ def vis_segmentation(image, seg_map_gt, seg_map_pred, var_map_pred=None, cls_unc
     plt.title('Correctness overlay')
 
     if var_map_pred is not None:
-        T = 0.008
+        T = Threshold
         threshold_pred = np.copy(var_map_pred)
         threshold_pred[threshold_pred > T] = 1
         threshold_pred[threshold_pred <= T] = 0
@@ -141,7 +163,8 @@ def vis_segmentation(image, seg_map_gt, seg_map_pred, var_map_pred=None, cls_unc
             ax.get_xaxis().set_visible(False)
             ax.get_yaxis().set_visible(False)
 
-    ii += len(label_names) + 1
+        ii += len(label_names)
+    ii += 1
     unique_labels = np.unique(np.concatenate((np.unique(seg_map_gt), np.unique(seg_map_pred)), 0)).astype(np.int32)
     ax = plt.subplot(grid_spec[ii])
     plt.imshow(FULL_COLOR_MAP[unique_labels].astype(np.uint8), interpolation='nearest')
@@ -152,7 +175,7 @@ def vis_segmentation(image, seg_map_gt, seg_map_pred, var_map_pred=None, cls_unc
     plt.grid('off')
 
 
-    plt.savefig(image_name)
+    # plt.savefig(image_name)
 
 
 def plot_save_preds_3d(images, masks, mask_preds, var_preds=None, slice_numbers=None,
