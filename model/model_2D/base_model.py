@@ -8,6 +8,11 @@ from utils.eval_utils import get_hist, compute_iou, var_calculate_2d, get_uncert
 import os
 import numpy as np
 
+import pickle
+
+def savePickle(name, data):
+    with open(name, 'wb') as f:
+        pickle.dump(data, f)
 
 class BaseModel(object):
 
@@ -160,7 +165,7 @@ class BaseModel(object):
             print('wrong data name')
 
         self.data_reader = DataLoader(self.conf)
-        self.numTest = 20
+        self.numTest = 100
         # self.numTest = self.data_reader.count_num_samples(mode='test')
         self.num_test_batch = int(self.numTest / self.conf.val_batch_size)
 
@@ -240,6 +245,38 @@ class BaseModel(object):
         print('-' * 20)
         # self.visualize(plot_inputs, plot_mask, plot_mask_pred, train_step=train_step, mode='valid')
 
+    def MC_evaluate_jupyter(self, x_valid, args):
+        self.reload(args.reload_step)
+        num_batch = len(x_valid)
+        self.sess.run(tf.local_variables_initializer())
+        mask_prob_mc_list = []
+        for step in tqdm(range(num_batch)):
+            data_x, data_y = x_valid[step: step+1], np.zeros_like(x_valid[step: step+1])[..., 0]
+            # mask_pred_mc = [np.zeros((self.conf.height, self.conf.width))
+            #                 for _ in range(self.conf.monte_carlo_simulations)]
+            mask_prob_mc = [np.zeros((self.conf.height, self.conf.width, self.conf.num_cls))
+                            for _ in range(self.conf.monte_carlo_simulations)]
+            feed_dict = {self.inputs_pl: data_x,
+                         self.labels_pl: data_y,
+                         self.is_training_pl: True,
+                         self.with_dropout_pl: True,
+                         self.keep_prob_pl: self.conf.keep_prob}
+            for mc_iter in range(self.conf.monte_carlo_simulations):
+                inputs, mask, mask_prob = self.sess.run([self.inputs_pl,
+                                                         self.labels_pl,
+                                                         self.y_prob], feed_dict=feed_dict)
+                mask_prob_mc[mc_iter] = mask_prob.squeeze()
+                # mask_pred_mc[mc_iter] = mask_pred
+
+            mask_prob_mc_list.append(mask_prob_mc)
+
+        if args.run_name == "dropconnect":
+            savePickle("dropconnect_pred_final.pkl", mask_prob_mc_list)
+        elif args.run_name == "dropout":
+            savePickle("dropout_pred_final.pkl", mask_prob_mc_list)
+
+        return mask_prob_mc_list
+
     def MC_evaluate(self, dataset='valid', train_step=None):
         num_batch = self.num_test_batch if dataset == 'test' else self.num_val_batch
         hist = np.zeros((self.conf.num_cls, self.conf.num_cls))
@@ -249,6 +286,8 @@ class BaseModel(object):
         all_pred = np.zeros((0, self.conf.height, self.conf.width))
         all_var = np.zeros((0, self.conf.height, self.conf.width))
         cls_uncertainty = np.zeros((0, self.conf.height, self.conf.width, self.conf.num_cls))
+        mask_prob_mc_list = []
+        mask_prob_mean_list = []
         for step in tqdm(range(num_batch)):
             start = self.conf.val_batch_size * step
             end = self.conf.val_batch_size * (step + 1)
@@ -269,6 +308,7 @@ class BaseModel(object):
                 mask_prob_mc[mc_iter] = mask_prob
                 # mask_pred_mc[mc_iter] = mask_pred
 
+            mask_prob_mc_list.append(mask_prob_mc)
             prob_mean = np.nanmean(mask_prob_mc, axis=0)
             prob_variance = np.var(mask_prob_mc, axis=0)
             pred = np.argmax(prob_mean, axis=-1)
@@ -276,9 +316,10 @@ class BaseModel(object):
             # var_one = var_calculate_2d(pred, prob_variance)
             # var_one = predictive_entropy(prob_mean)
             var_one = mutual_info(prob_mean, mask_prob_mc)
+            mask_prob_mean_list.append([pred, var_one])
             hist += get_hist(pred.flatten(), mask.flatten(), num_cls=self.conf.num_cls)
 
-            if all_inputs.shape[0] < 10:
+            if all_inputs.shape[0] < 1000:
                 all_inputs = np.concatenate((all_inputs, inputs.reshape(-1, self.conf.height, self.conf.width,
                                                                         self.conf.channel)), axis=0)
                 all_mask = np.concatenate((all_mask, mask.reshape(-1, self.conf.height, self.conf.width)), axis=0)
@@ -289,7 +330,10 @@ class BaseModel(object):
                                                   prob_variance.reshape(-1, self.conf.height, self.conf.width,
                                                                         self.conf.num_cls)),
                                                  axis=0)
-                
+        # savePickle("dropconnect_pred_1.pkl", mask_prob_mc_list[:25])
+        # savePickle("dropconnect_pred_mean_1.pkl", mask_prob_mean_list[:25])
+        # savePickle("dropconnect_pred_2.pkl", mask_prob_mc_list[25:])
+        # savePickle("dropconnect_pred_mean_2.pkl", mask_prob_mean_list[25:])
         self.visualize(all_inputs, all_mask, all_pred, all_var, cls_uncertainty, train_step=train_step,
                        mode='test')
         IOU, ACC = compute_iou(hist)

@@ -1,6 +1,7 @@
 import tensorflow as tf
 
 flags = tf.app.flags
+flags.DEFINE_string('f', '', 'kernel')
 flags.DEFINE_string('mode', 'test', 'train or test')
 flags.DEFINE_boolean('bayes', True, 'Whether to use Bayesian network or not')
 flags.DEFINE_integer('monte_carlo_simulations', 50, 'The number of monte carlo simulation runs')
