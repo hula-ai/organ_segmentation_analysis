@@ -2,7 +2,7 @@
 Organ segmentation demo at MICCAI19 Bayesian Deep Learning for Medical Imaging tutorial
 
 ## Paper link
-[Risk-Aware Machine Learning Classifier for Medical Diagnosis](https://www.mdpi.com/2077-0383/8/8/1241)
+[DropConnect Is Effective in Modeling Uncertainty of Bayesian Deep Networks](https://arxiv.org/pdf/1906.04569.pdf)
 
 ## Run the code
 There are two ways to run the code:
